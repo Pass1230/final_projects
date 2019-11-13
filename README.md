@@ -11,5 +11,5 @@ Chenming Xu(edward-cx)
 Analysis of the relationship between drug poisoning mortality by state’s GDP and age in united states, from 1999 to 2017.
 
 ### Hypothesis:
-Higher GDP states have lower drug poisoning mortality rate.
-People of age between 35-54 has higher suicide rate.
+1. Higher GDP states have lower drug poisoning mortality rate.
+2. People of age between 35-54 has higher suicide rate.
