@@ -1,43 +1,116 @@
 # Group members: Yu Zhu, Hua Li, , Chenming Xu
 # Hypothesis 1: Chenming Xu
-# Hypothesis 2 & 3: Yu Zhu
-# Hypothesis 4: Hua Li
+# Hypothesis 2: Yu Zhu
+# Hypothesis 3: Hua Li
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
+
+def condition(x,y,z):
+    """
+    :param x: the date frame that used
+    :param y: the column choosed
+    :param z: the condition applied
+    :return: choosed dataframe
+    >>> DF1=pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],orient='index', columns=['one', 'two', 'three'])
+    >>> condition(DF1,'one',1)
+       one  two  three
+    A    1    2      3
+    """
+    return x[x[y]==z]
+
+
+def compare(a):
+    """ Compare the ratio of male suicide to female suicide
+     if ratio > 1, then male suicide rate is higher
+     if ratio = 1, then the two rates are equal
+     if ratio < 1, then female suicide rate is higher.
+
+     :param a:list of gender suicide ratio
+     :return: 1 or 0
+    >>> data = {'city': ['Beijing', 'Shanghai', 'Guangzhou', 'Shenzhen', 'Hangzhou', 'Chongqing'], 'year': [2016,2016,2015,2017,2016, 2016], 'population_rate': [2.1, 2.3, 1.1, 0.7, 0.5, 0.5]}
+    >>> frame = pd.DataFrame(data, columns = ['year', 'city', 'population_rate'])
+    >>> frame['test'] = frame.apply(lambda x: compare(x.population_rate), axis = 1)
+    >>> frame['test']
+    0    1
+    1    1
+    2    1
+    3    0
+    4    0
+    5    0
+    Name: test, dtype: int64
+     """
+    if a>1:
+        return 1
+    else:
+        return 0
+
+
+def merge_default(a):
+    """Merge two different dataset."""
+    return pd.merge(country_rate,a,left_on='Entity',right_on='Country Name')
+
+
+def specify_religion(data, data_name, religion_name, variable_name):
+    """Extract the data of a specific column from the whole dataset."""
+    subset = data[data[data_name] == religion_name]
+    variable = subset[variable_name]
+    return variable
+
+
+def select_time(data, name):
+    """Select the time interval."""
+    data = data[data[name] >= 2000]
+    data = data[data[name] <= 2016]
+    return data
+
+
+def groupby_data(data):
+    """Group the data by Entity and Year."""
+    output = data.groupby(['Entity','Year'])['higher_male'].value_counts()
+    return output.unstack()
+
+
+def compute_mean(data):
+    """Compute the mean of the data."""
+    output = data['Suicide rate (deaths per 100,000)']
+    mean = output.mean()
+    return mean
+
 
 ratio = pd.read_csv('Male-Female-Ratio-of-Suicide-Rates.csv')
 
 # Hypothesis 1:
 frame = pd.DataFrame(ratio,columns=['Entity','Code','Year','Male_female_suicide_ratio'])
 
-frame['higher_male'] = frame.Male_female_suicide_ratio.apply(lambda x: 1 if x>1 else 0)
-result = frame.groupby(['Entity','Year'])['higher_male'].value_counts().unstack()
+frame['higher_male'] = frame.apply(lambda x: compare(x.Male_female_suicide_ratio), axis=1)
+result = groupby_data(frame)
 
 uk = frame[frame['Entity'] == 'United Kingdom']
-result_uk = uk.groupby(['Entity','Year'])['higher_male'].value_counts().unstack()
+result_uk = groupby_data(uk)
 result_uk.plot.bar()
 plt.show()
 
 china = frame[frame['Entity'] == 'China']
-result_china = china.groupby(['Entity','Year'])['higher_male'].value_counts().unstack()
+result_china = groupby_data(china)
 result_china.plot.bar()
 plt.show()
 
 morocco = frame[frame['Entity'] == 'Morocco']
-result_morocco = morocco.groupby(['Entity','Year'])['higher_male'].value_counts().unstack()
+result_morocco = groupby_data(morocco)
 result_morocco.plot.bar()
 plt.show()
 
+
+
 # Hypothesis 2:
 suicide = pd.read_csv('suicide-rate-1990-2017.csv', sep = ',')
-suicide = suicide[suicide['Year'] >= 2000]
-suicide = suicide[suicide['Year'] <= 2016]
+suicide = select_time(suicide, 'Year')
 
 GDP = pd.read_excel('GDP.xls', sep=',')[['country', 'year', ' gdp_for_year ($) ']]
-GDP = GDP[GDP['year'] >= 2000]
-GDP = GDP[GDP['year'] <= 2016]
+GDP = select_time(GDP, 'year')
 GDP[' gdp_for_year ($) '] = GDP[' gdp_for_year ($) ']/10000000000
 
 years = {'years': range(2000, 2017)}
@@ -53,8 +126,8 @@ plt.show()
 suicide_entity_year = suicide.groupby(['Entity', 'Year'])['Suicide rate (deaths per 100,000)'].sum()
 gdp_entity_year = GDP.groupby(['country', 'year'])[' gdp_for_year ($) '].sum()
 
-combine = pd.merge(suicide_entity_year, gdp_entity_year, left_on=['Entity', 'Year'],right_on=['country', 'year'],
-                   right_index=True, how='inner')
+combine = pd.merge(suicide_entity_year, gdp_entity_year, left_on=['Entity', 'Year'],
+                   right_on=['country', 'year'], right_index=True, how='inner')
 
 country_suicide = combine.groupby(['Entity', 'Year'])[['Suicide rate (deaths per 100,000)']].agg(np.sum)
 country_GDP = combine.groupby(['Entity'])[[' gdp_for_year ($) ']].agg(np.mean)
@@ -96,43 +169,40 @@ country_rate=country_rate.to_frame()
 religion=pd.read_excel('Religions1.xlsx',engine="openpyxl",header=1)
 pre_religion=religion.iloc[range(0,4211,18)]
 
-#group countries with their predominant religion
-Mus=pre_religion[pre_religion['Religion 1']=='Muslims']
+# Group countries with their predominant religion
+Mus= condition(pre_religion,'Religion 1', 'Muslims')
 Muslims=Mus['Country Name']
-Chris=pre_religion[pre_religion['Religion 1']=='Christians']
+Chris=condition(pre_religion,'Religion 1', 'Christians')
 Christians=Chris['Country Name']
-Budd=pre_religion[pre_religion['Religion 1']=='Buddhists']
+Budd=condition(pre_religion,'Religion 1', 'Buddhists')
 Buddhists=Budd['Country Name']
-Hin=pre_religion[pre_religion['Religion 1']=='Hindus']
+Hin=condition(pre_religion,'Religion 1', 'Hindus')
 Hindus=Hin['Country Name']
-Agn=pre_religion[pre_religion['Religion 1']=='Agnostics']
+Agn=condition(pre_religion,'Religion 1', 'Agnostics')
 Agnostics=Agn['Country Name']
-Chi=pre_religion[pre_religion['Religion 1']=='Chinese folk-religionists']
+Chi=condition(pre_religion,'Religion 1', 'Chinese folk-religionists')
 Chinese_folk_religionists=Chi['Country Name']
-J=pre_religion[pre_religion['Religion 1']=='Jews']
+J=condition(pre_religion,'Religion 1', 'Jews')
 Jews=J['Country Name']
 
-#count mean suicide rate of each religion groups
-Muslims=pd.merge(country_rate,Muslims,left_on='Entity',right_on='Country Name')
-print('Muslims suicide rate=', Muslims['Suicide rate (deaths per 100,000)'].mean())
-
-Christians=pd.merge(country_rate,Christians,left_on='Entity',right_on='Country Name')
-print('Christians suicide rate=', Christians['Suicide rate (deaths per 100,000)'].mean())
-
-Buddhists=pd.merge(country_rate,Buddhists,left_on='Entity',right_on='Country Name')
-print('Buddhists suicide rate=', Buddhists['Suicide rate (deaths per 100,000)'].mean())
-
-Hindus=pd.merge(country_rate,Hindus,left_on='Entity',right_on='Country Name')
-print('Hindus suicide rate=', Hindus['Suicide rate (deaths per 100,000)'].mean())
-
-Agnostics=pd.merge(country_rate,Agnostics,left_on='Entity',right_on='Country Name')
-print('Agnostics suicide rate=', Agnostics['Suicide rate (deaths per 100,000)'].mean())
-
+Muslims=merge_default(Muslims)
+Christians=merge_default(Christians)
+Buddhists=merge_default(Buddhists)
+Hindus=merge_default(Hindus)
+Agnostics=merge_default(Agnostics)
 Chinese_folk_religionists=pd.merge(country_rate,Chinese_folk_religionists,left_on='Entity',right_on='Country Name')
-print('Chinese_folk_religionists suicide rate=', Chinese_folk_religionists['Suicide rate (deaths per 100,000)'].mean())
+Jews=merge_default(Jews)
 
-Jews=pd.merge(country_rate,Jews,left_on='Entity',right_on='Country Name')
-print('Jews suicide rate=', Jews['Suicide rate (deaths per 100,000)'].mean())
+#count mean suicide rate of each religion groups
+
+
+print('Muslims suicide rate=', compute_mean(Muslims))
+print('Christians suicide rate=', compute_mean(Christians))
+print('Buddhists suicide rate=', compute_mean(Buddhists))
+print('Hindus suicide rate=', compute_mean(Hindus))
+print('Agnostics suicide rate=', compute_mean(Agnostics))
+print('Chinese_folk_religionists suicide rate=', compute_mean(Chinese_folk_religionists))
+print('Jews suicide rate=', compute_mean(Jews))
 
 #get mean suicide rate of each religion of each year
 
@@ -143,12 +213,13 @@ groups=a.groupby(['Year','Religion 1'],as_index=False)['Suicide rate (deaths per
 
 years = {'years': range(2000, 2016)}
 
-plt.plot(years['years'], groups[groups['Religion 1']=='Agnostics']['Suicide rate (deaths per 100,000)'],label='Agnostics')
-plt.plot(years['years'], groups[groups['Religion 1']=='Christians']['Suicide rate (deaths per 100,000)'],label='Christians')
-plt.plot(years['years'], groups[groups['Religion 1']=='Muslims']['Suicide rate (deaths per 100,000)'],label='Muslims')
-plt.plot(years['years'], groups[groups['Religion 1']=='Chinese folk-religionists']['Suicide rate (deaths per 100,000)'],label='Chinese folk-religionists')
-plt.plot(years['years'], groups[groups['Religion 1']=='Jews']['Suicide rate (deaths per 100,000)'],label='Jews')
-plt.plot(years['years'], groups[groups['Religion 1']=='Buddhists']['Suicide rate (deaths per 100,000)'],label='Buddhists')
-plt.plot(years['years'], groups[groups['Religion 1']=='Hindus']['Suicide rate (deaths per 100,000)'],label='Hindus')
+religions = ['Agnostics', 'Christians', 'Muslims', 'Chinese folk-religionists',
+             'Jews', 'Buddhists', 'Hindus']
+
+for religion in religions:
+    print(religion, specify_religion(groups, 'Religion 1', religion,
+                'Suicide rate (deaths per 100,000)'))
+    plt.plot(years['years'], specify_religion(groups, 'Religion 1', religion,
+                                              'Suicide rate (deaths per 100,000)'), label=religion)
 plt.legend()
 plt.show()
