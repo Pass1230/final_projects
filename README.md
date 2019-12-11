@@ -8,7 +8,7 @@ Yu Zhu(Yu-Zhu5)
 Chenming Xu(edward-cx)
 
 ### Project Name: 
-Analysis of the relationship between suicide rate by sex, GDP and religions in the world, from 2000 to 2016.
+Analysis of the relationship between suicide rate by gender, GDP and religions in the world, from 2000 to 2016.
 
 ### Hypothesis:
 1.     
